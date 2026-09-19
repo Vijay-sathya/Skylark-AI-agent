@@ -2,9 +2,15 @@ import { RawDeal, CleanDeal, RawWorkOrder, CleanWorkOrder, DataHealthReport } fr
 
 // Canonical sectors
 export const CANONICAL_SECTORS = {
-  RENEWABLE_ENERGY: 'Renewable & Energy',
   MINING: 'Mining & Resources',
-  INFRASTRUCTURE: 'Infrastructure & Rail',
+  POWERLINE: 'Powerline & Utilities',
+  RENEWABLE_ENERGY: 'Renewable & Energy',
+  RAILWAYS: 'Railways & Transport',
+  INFRASTRUCTURE: 'Infrastructure & Construction',
+  DSP: 'DSP & Software (Spectra)',
+  TENDER: 'Government & Utility Tenders',
+  SECURITY: 'Security & Surveillance',
+  MANUFACTURING: 'Industrial Manufacturing',
   TELECOM: 'Telecom & Towers',
   AGRICULTURE: 'Agriculture & Forestry',
   OTHER: 'Other Enterprise'
@@ -17,14 +23,32 @@ export function normalizeSector(rawSector: string | undefined): { normalized: st
 
   const s = rawSector.trim().toLowerCase();
   
-  if (s.includes('energy') || s.includes('renew') || s.includes('solar') || s.includes('wind') || s.includes('power')) {
-    return { normalized: CANONICAL_SECTORS.RENEWABLE_ENERGY, wasMessy: s !== 'renewable & energy' };
+  if (s.includes('powerline') || s.includes('transmission') || s.includes('grid')) {
+    return { normalized: CANONICAL_SECTORS.POWERLINE, wasMessy: s !== 'powerline & utilities' };
   }
   if (s.includes('min') || s.includes('iron') || s.includes('coal') || s.includes('zinc')) {
     return { normalized: CANONICAL_SECTORS.MINING, wasMessy: s !== 'mining & resources' };
   }
-  if (s.includes('infra') || s.includes('highway') || s.includes('rail') || s.includes('bridge') || s.includes('viaduct')) {
-    return { normalized: CANONICAL_SECTORS.INFRASTRUCTURE, wasMessy: s !== 'infrastructure & rail' };
+  if (s.includes('energy') || s.includes('renew') || s.includes('solar') || s.includes('wind')) {
+    return { normalized: CANONICAL_SECTORS.RENEWABLE_ENERGY, wasMessy: s !== 'renewable & energy' };
+  }
+  if (s.includes('rail')) {
+    return { normalized: CANONICAL_SECTORS.RAILWAYS, wasMessy: s !== 'railways & transport' };
+  }
+  if (s.includes('infra') || s.includes('highway') || s.includes('construct') || s.includes('bridge') || s.includes('viaduct')) {
+    return { normalized: CANONICAL_SECTORS.INFRASTRUCTURE, wasMessy: s !== 'infrastructure & construction' };
+  }
+  if (s.includes('dsp') || s.includes('spectra') || s.includes('software') || s.includes('dmo')) {
+    return { normalized: CANONICAL_SECTORS.DSP, wasMessy: s !== 'dsp & software (spectra)' };
+  }
+  if (s.includes('tender')) {
+    return { normalized: CANONICAL_SECTORS.TENDER, wasMessy: s !== 'government & utility tenders' };
+  }
+  if (s.includes('surveillance') || s.includes('security')) {
+    return { normalized: CANONICAL_SECTORS.SECURITY, wasMessy: s !== 'security & surveillance' };
+  }
+  if (s.includes('manufactur') || s.includes('plant')) {
+    return { normalized: CANONICAL_SECTORS.MANUFACTURING, wasMessy: s !== 'industrial manufacturing' };
   }
   if (s.includes('telecom') || s.includes('tower') || s.includes('rf')) {
     return { normalized: CANONICAL_SECTORS.TELECOM, wasMessy: s !== 'telecom & towers' };
@@ -222,20 +246,36 @@ export function parseMessyDate(dateStr: string | undefined): {
 export function normalizeStage(stageStr: string | undefined): 'Discovery' | 'Proposal' | 'Negotiation' | 'Closed Won' | 'Closed Lost' {
   if (!stageStr) return 'Discovery';
   const s = stageStr.trim().toLowerCase();
-  if (s.includes('won')) return 'Closed Won';
-  if (s.includes('lost')) return 'Closed Lost';
-  if (s.includes('nego') || s.includes('contract') || s.includes('review')) return 'Negotiation';
-  if (s.includes('prop') || s.includes('sent') || s.includes('quote') || s.includes('pitch')) return 'Proposal';
+  if (s.includes('won') || s.includes('work order received') || s.includes('invoice sent') || s.includes('amount accrued') || s.includes('project completed')) {
+    return 'Closed Won';
+  }
+  if (s.includes('lost') || s.includes('not relevant') || s.includes('dead') || s.includes('dropped')) {
+    return 'Closed Lost';
+  }
+  if (s.includes('nego') || s.includes('contract') || s.includes('review') || s.includes('poc') || s.includes('on hold')) {
+    return 'Negotiation';
+  }
+  if (s.includes('prop') || s.includes('commercial') || s.includes('sent') || s.includes('quote') || s.includes('feasibility') || s.includes('pitch')) {
+    return 'Proposal';
+  }
   return 'Discovery';
 }
 
 export function normalizeWOStatus(statusStr: string | undefined): 'Scheduled' | 'In Progress' | 'Completed' | 'Delayed' | 'Cancelled' {
   if (!statusStr) return 'Scheduled';
   const s = statusStr.trim().toLowerCase();
-  if (s.includes('deliv') || s.includes('complete') || s.includes('done')) return 'Completed';
-  if (s.includes('delay') || s.includes('hold') || s.includes('weather') || s.includes('dgca') || s.includes('pause')) return 'Delayed';
-  if (s.includes('flight') || s.includes('prog') || s.includes('active') || s.includes('scan') || s.includes('audit')) return 'In Progress';
-  if (s.includes('cancel') || s.includes('abort')) return 'Cancelled';
+  if (s.includes('deliv') || s.includes('complete') || s.includes('done') || s.includes('executed until current month')) {
+    return 'Completed';
+  }
+  if (s.includes('delay') || s.includes('hold') || s.includes('weather') || s.includes('dgca') || s.includes('pause') || s.includes('struck') || s.includes('stuck')) {
+    return 'Delayed';
+  }
+  if (s.includes('flight') || s.includes('prog') || s.includes('active') || s.includes('scan') || s.includes('audit') || s.includes('ongoing') || s.includes('partial')) {
+    return 'In Progress';
+  }
+  if (s.includes('cancel') || s.includes('abort')) {
+    return 'Cancelled';
+  }
   return 'Scheduled';
 }
 

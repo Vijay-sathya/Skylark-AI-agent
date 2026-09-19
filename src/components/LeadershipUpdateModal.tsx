@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { 
   X, Sparkles, Copy, Check, Download, FileText, 
-  Calendar, Layers, ShieldAlert, TrendingUp, RefreshCw 
+  Calendar, Layers, ShieldAlert, TrendingUp, RefreshCw, FileDown 
 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 import { CleanDeal, CleanWorkOrder, DataHealthReport, ExecutiveKPIs } from '../types';
 import { SectorMetric } from '../lib/analyticsEngine';
 
@@ -103,6 +104,8 @@ export const LeadershipUpdateModal: React.FC<LeadershipUpdateModalProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
   const downloadMarkdown = () => {
     const blob = new Blob([generatedMarkdown], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
@@ -111,6 +114,325 @@ export const LeadershipUpdateModal: React.FC<LeadershipUpdateModalProps> = ({
     a.download = `Skylark_Leadership_Update_${updateType}_${new Date().toISOString().slice(0, 10)}.md`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const downloadPdfReport = () => {
+    setIsGeneratingPdf(true);
+    try {
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const pageWidth = doc.internal.pageSize.getWidth(); // 210mm
+      const margin = 14;
+      const contentWidth = pageWidth - margin * 2; // 182mm
+      let yPos = 14;
+
+      const formatTitles: Record<string, string> = {
+        weekly_digest: 'Weekly Executive Digest',
+        board_deck: 'Board of Directors Synthesis',
+        risk_radar: 'Operational Risk & SLA Radar',
+        sector_strategy: 'Sector Performance Deep-Dive'
+      };
+      const currentFormatTitle = formatTitles[updateType] || 'Executive Leadership Briefing';
+
+      // --- 1. HEADER BANNER ---
+      doc.setFillColor(15, 23, 42); // slate-900 / navy
+      doc.roundedRect(margin, yPos, contentWidth, 26, 3, 3, 'F');
+
+      // Top amber accent line
+      doc.setFillColor(245, 158, 11); // amber-500
+      doc.rect(margin, yPos, contentWidth, 2.5, 'F');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.setTextColor(245, 158, 11);
+      doc.text('SKYLARK DRONES  |  AUTONOMOUS BI & OPERATIONS INTELLIGENCE', margin + 6, yPos + 8);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.setTextColor(255, 255, 255);
+      doc.text(currentFormatTitle, margin + 6, yPos + 16);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(148, 163, 184); // slate-400
+      const dateStr = new Date().toLocaleDateString('en-US', { 
+        year: 'numeric', month: 'short', day: 'numeric' 
+      });
+      doc.text(`Focus: ${focusPeriod}   |   Date: ${dateStr}   |   Model: Gemini 3.8 Flash`, margin + 6, yPos + 22);
+
+      yPos += 31;
+
+      // Helper for page break checks
+      const ensureSpace = (neededHeight: number) => {
+        if (yPos + neededHeight > 275) {
+          doc.addPage();
+          yPos = 16;
+          // Mini Header on subsequent pages
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(8);
+          doc.setTextColor(100, 116, 139);
+          doc.text(`Skylark Drones — ${currentFormatTitle} (Cont.)`, margin, yPos);
+          doc.setDrawColor(226, 232, 240);
+          doc.line(margin, yPos + 2, margin + contentWidth, yPos + 2);
+          yPos += 7;
+        }
+      };
+
+      // --- 2. EXECUTIVE KPI SUMMARY CARDS (6 Grid) ---
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text('1. Cross-Board Performance Benchmarks', margin, yPos);
+      yPos += 4;
+
+      const kpiItems = [
+        {
+          label: 'Total Sales Pipeline',
+          val: `$${(kpis.totalPipelineValue / 1000).toFixed(0)}k`,
+          sub: `${deals.length} active opportunities`,
+          accent: [217, 119, 6] // amber-600
+        },
+        {
+          label: 'Closed-Won Bookings',
+          val: `$${(kpis.totalWonBookings / 1000).toFixed(0)}k`,
+          sub: `${kpis.overallWinRate}% aggregate win rate`,
+          accent: [5, 150, 105] // emerald-600
+        },
+        {
+          label: 'Field Ops Realized',
+          val: `$${(kpis.totalExecutedBilling / 1000).toFixed(0)}k`,
+          sub: `${kpis.completedWorkOrders} delivered missions`,
+          accent: [37, 99, 235] // blue-600
+        },
+        {
+          label: 'Flight Hours Logged',
+          val: `${kpis.totalFlightHoursLogged} hrs`,
+          sub: `${kpis.pilotsDeployed} certified drone pilots`,
+          accent: [124, 58, 237] // purple-600
+        },
+        {
+          label: 'Revenue At Risk (Delays)',
+          val: `$${(kpis.atRiskRevenue / 1000).toFixed(0)}k`,
+          sub: `${kpis.delayedWorkOrders} delayed work orders`,
+          accent: [225, 29, 72] // rose-600
+        },
+        {
+          label: 'Avg Turnaround (TAT)',
+          val: `${kpis.avgTurnaroundDays} days`,
+          sub: 'Target SLA benchmark: 14.0d',
+          accent: [71, 85, 105] // slate-600
+        }
+      ];
+
+      const cardWidth = (contentWidth - 8) / 3; // 3 columns
+      const cardHeight = 16;
+
+      kpiItems.forEach((item, idx) => {
+        const col = idx % 3;
+        const row = Math.floor(idx / 3);
+        const cardX = margin + col * (cardWidth + 4);
+        const cardY = yPos + row * (cardHeight + 3);
+
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(226, 232, 240);
+        doc.roundedRect(cardX, cardY, cardWidth, cardHeight, 1.5, 1.5, 'FD');
+
+        // Color tag dot
+        doc.setFillColor(item.accent[0], item.accent[1], item.accent[2]);
+        doc.circle(cardX + 4, cardY + 4.5, 1.5, 'F');
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(100, 116, 139);
+        doc.text(item.label, cardX + 8, cardY + 5.5);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(15, 23, 42);
+        doc.text(item.val, cardX + 4, cardY + 11);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6.5);
+        doc.setTextColor(148, 163, 184);
+        doc.text(item.sub, cardX + 4, cardY + 14.5);
+      });
+
+      yPos += (cardHeight * 2) + 10;
+
+      // --- 3. SECTOR PERFORMANCE BREAKDOWN TABLE ---
+      ensureSpace(42);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text('2. Enterprise Sector Distribution & Velocity', margin, yPos);
+      yPos += 4;
+
+      // Table Header
+      const colWidths = [44, 28, 28, 26, 26, 30];
+      const headers = ['Sector', 'Pipeline ($)', 'Won Bookings', 'Completed WOs', 'Avg TAT', 'Health'];
+
+      doc.setFillColor(241, 245, 249);
+      doc.rect(margin, yPos, contentWidth, 6, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(51, 65, 85);
+
+      let curX = margin + 2;
+      headers.forEach((h, i) => {
+        doc.text(h, curX, yPos + 4.2);
+        curX += colWidths[i];
+      });
+      yPos += 6;
+
+      // Table Rows from sectorMetrics
+      sectorMetrics.forEach((sec, sIdx) => {
+        ensureSpace(7);
+        const isEven = sIdx % 2 === 0;
+        if (isEven) {
+          doc.setFillColor(248, 250, 252);
+          doc.rect(margin, yPos, contentWidth, 5.5, 'F');
+        }
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(15, 23, 42);
+
+        let rowX = margin + 2;
+        // Sector Name
+        doc.setFont('helvetica', 'bold');
+        doc.text(sec.sector, rowX, yPos + 3.8);
+        doc.setFont('helvetica', 'normal');
+        rowX += colWidths[0];
+
+        // Pipeline
+        doc.text(`$${sec.totalPipeline.toLocaleString()}`, rowX, yPos + 3.8);
+        rowX += colWidths[1];
+
+        // Won
+        doc.text(`$${sec.wonBookings.toLocaleString()}`, rowX, yPos + 3.8);
+        rowX += colWidths[2];
+
+        // Completed
+        doc.text(`${sec.completedWorkOrders} missions`, rowX, yPos + 3.8);
+        rowX += colWidths[3];
+
+        // Avg TAT
+        const tatStr = sec.avgTatDays ? `${sec.avgTatDays}d` : 'N/A';
+        doc.text(tatStr, rowX, yPos + 3.8);
+        rowX += colWidths[4];
+
+        // Status Health
+        const isWarning = sec.delayedWorkOrders > 0;
+        if (isWarning) {
+          doc.setTextColor(225, 29, 72);
+          doc.text(`Warning (${sec.delayedWorkOrders} delayed)`, rowX, yPos + 3.8);
+        } else {
+          doc.setTextColor(5, 150, 105);
+          doc.text('Optimal Velocity', rowX, yPos + 3.8);
+        }
+
+        yPos += 5.5;
+      });
+
+      yPos += 6;
+
+      // --- 4. CRITICAL EXECUTION FRICTION & BOTTLENECKS ---
+      ensureSpace(26);
+      doc.setFillColor(254, 242, 242); // soft red box
+      doc.setDrawColor(254, 202, 202);
+      doc.roundedRect(margin, yPos, contentWidth, 22, 2, 2, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(185, 28, 28);
+      doc.text('CRITICAL EXECUTION BLOCKERS & REVENUE AT RISK ($170,000)', margin + 4, yPos + 5.5);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.8);
+      doc.setTextColor(127, 29, 29);
+      const blockerLines = [
+        '• NTPC Super Thermal Powerline LiDAR (WO-202): $125k milestone delayed 9 days by flash monsoon weather in MP.',
+        '• NHAI Vadodara Expressway 3D Mesh (WO-211): $45k held due to DGCA/AAI civil airfield buffer zone permits.',
+        '• Action Taken: Rapid staging at basecamp + expedited DGCA regional liaison protocol active.'
+      ];
+      blockerLines.forEach((line, lIdx) => {
+        doc.text(line, margin + 4, yPos + 10.5 + (lIdx * 3.8));
+      });
+
+      yPos += 27;
+
+      // --- 5. SYNTHESIZED EXECUTIVE BRIEFING NARRATIVE ---
+      ensureSpace(20);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text('3. Strategic Narrative & Tactical Founder Levers', margin, yPos);
+      yPos += 5;
+
+      // Process markdown narrative into clean paragraphs
+      const paragraphs = generatedMarkdown
+        .split('\n\n')
+        .map(p => p.trim())
+        .filter(p => !p.startsWith('|') && !p.startsWith('# ') && p.length > 0);
+
+      paragraphs.forEach((para) => {
+        if (para.startsWith('### ')) {
+          ensureSpace(12);
+          const headingText = para.replace('### ', '');
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(8.5);
+          doc.setTextColor(217, 119, 6); // amber-600
+          doc.text(headingText, margin, yPos);
+          yPos += 4.5;
+        } else if (para.startsWith('- ') || para.startsWith('1. ')) {
+          const listItems = para.split('\n');
+          listItems.forEach(item => {
+            ensureSpace(8);
+            const cleanItem = item.replace(/^[-0-9.]+\s*/, '').replace(/\*\*/g, '');
+            const wrappedLines = doc.splitTextToSize(`• ${cleanItem}`, contentWidth - 4);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7.2);
+            doc.setTextColor(51, 65, 85);
+            doc.text(wrappedLines, margin + 2, yPos);
+            yPos += wrappedLines.length * 3.5 + 1.2;
+          });
+        } else {
+          ensureSpace(10);
+          const cleanText = para.replace(/\*\*/g, '');
+          const wrapped = doc.splitTextToSize(cleanText, contentWidth);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(7.2);
+          doc.setTextColor(51, 65, 85);
+          doc.text(wrapped, margin, yPos);
+          yPos += wrapped.length * 3.5 + 2;
+        }
+      });
+
+      // --- 6. PAGE NUMBERING & FOOTER ON EVERY PAGE ---
+      const totalPages = doc.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setDrawColor(226, 232, 240);
+        doc.line(margin, 286, margin + contentWidth, 286);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6.8);
+        doc.setTextColor(148, 163, 184);
+        doc.text('Skylark Drones Confidential  |  Executive Leadership Intelligence Report', margin, 290.5);
+        doc.text(`Page ${i} of ${totalPages}`, margin + contentWidth, 290.5, { align: 'right' });
+      }
+
+      // Download triggered
+      doc.save(`Skylark_Executive_Report_${updateType}_${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (pdfErr) {
+      console.error('PDF generation error:', pdfErr);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   return (
@@ -259,10 +581,22 @@ export const LeadershipUpdateModal: React.FC<LeadershipUpdateModalProps> = ({
 
             <button
               onClick={downloadMarkdown}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold shadow transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition-colors"
+              title="Download raw Markdown briefing"
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-3.5 h-3.5 text-slate-400" />
               <span>Download (.md)</span>
+            </button>
+
+            <button
+              id="btn-download-pdf-report"
+              onClick={downloadPdfReport}
+              disabled={isGeneratingPdf}
+              className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold shadow-md shadow-amber-500/20 transition-all disabled:opacity-50"
+              title="Generate and download professional executive PDF report"
+            >
+              <FileDown className={`w-4 h-4 ${isGeneratingPdf ? 'animate-bounce' : ''}`} />
+              <span>{isGeneratingPdf ? 'Generating PDF...' : 'Download Report'}</span>
             </button>
           </div>
         </div>

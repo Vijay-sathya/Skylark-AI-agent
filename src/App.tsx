@@ -1,5 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { rawDealsData, rawWorkOrdersData } from './data/sampleDataset';
+import { 
+  defaultActiveDeals, 
+  defaultActiveWorkOrders, 
+  enterpriseDealsData, 
+  enterpriseWorkOrdersData, 
+  rawDealsData, 
+  rawWorkOrdersData 
+} from './data/sampleDataset';
 import { cleanDeals, cleanWorkOrders, buildDataHealthReport } from './lib/dataCleaner';
 import { computeExecutiveKPIs, computeSectorMetrics } from './lib/analyticsEngine';
 import { MondayConnectionConfig, RawDeal, RawWorkOrder } from './types';
@@ -13,13 +20,16 @@ import { DataHealthModal } from './components/DataHealthModal';
 import { MondayConfigModal } from './components/MondayConfigModal';
 import { FloatingAgentDrawer } from './components/FloatingAgentDrawer';
 import { DeliverablesModal } from './components/DeliverablesModal';
+import { HowItWorksModal } from './components/HowItWorksModal';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'chat' | 'dashboard' | 'data'>('chat');
+  const [initialPrompt, setInitialPrompt] = useState<string | null>(null);
   
-  // Raw Data State
-  const [rawDeals, setRawDeals] = useState<RawDeal[]>(rawDealsData);
-  const [rawWOs, setRawWOs] = useState<RawWorkOrder[]>(rawWorkOrdersData);
+  // Dataset Mode & State (Default: Real Skylark Drones Enterprise Assessment Dataset)
+  const [datasetMode, setDatasetMode] = useState<'enterprise' | 'demo'>('enterprise');
+  const [rawDeals, setRawDeals] = useState<RawDeal[]>(defaultActiveDeals);
+  const [rawWOs, setRawWOs] = useState<RawWorkOrder[]>(defaultActiveWorkOrders);
 
   // Monday.com Connection Config State
   const [mondayConfig, setMondayConfig] = useState<MondayConnectionConfig>({
@@ -38,6 +48,7 @@ export default function App() {
   const [isDataHealthOpen, setIsDataHealthOpen] = useState(false);
   const [isMondayConfigOpen, setIsMondayConfigOpen] = useState(false);
   const [isDeliverablesOpen, setIsDeliverablesOpen] = useState(false);
+  const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false);
 
   // Cleaned and Normalized Data Memoization
   const cleanedData = useMemo(() => {
@@ -96,6 +107,7 @@ export default function App() {
         onOpenDataHealth={() => setIsDataHealthOpen(true)}
         onOpenMondayConfig={() => setIsMondayConfigOpen(true)}
         onOpenDeliverables={() => setIsDeliverablesOpen(true)}
+        onOpenHowItWorks={() => setIsHowItWorksOpen(true)}
       />
 
       {/* Main Workspace Area */}
@@ -109,6 +121,9 @@ export default function App() {
             dataHealth={cleanedData.dataHealth}
             onOpenLeadershipUpdates={() => setIsLeadershipUpdatesOpen(true)}
             onOpenDataHealth={() => setIsDataHealthOpen(true)}
+            onOpenHowItWorks={() => setIsHowItWorksOpen(true)}
+            initialPrompt={initialPrompt}
+            onClearInitialPrompt={() => setInitialPrompt(null)}
           />
         )}
 
@@ -132,9 +147,25 @@ export default function App() {
             onOpenDataHealth={() => setIsDataHealthOpen(true)}
             onUpdateDeals={(newDeals) => setRawDeals(newDeals)}
             onUpdateWorkOrders={(newWOs) => setRawWOs(newWOs)}
+            datasetMode={datasetMode}
+            onSwitchDataset={(mode) => {
+              setDatasetMode(mode);
+              if (mode === 'enterprise') {
+                setRawDeals(enterpriseDealsData);
+                setRawWOs(enterpriseWorkOrdersData);
+              } else {
+                setRawDeals(rawDealsData);
+                setRawWOs(rawWorkOrdersData);
+              }
+            }}
             onResetData={() => {
-              setRawDeals(rawDealsData);
-              setRawWOs(rawWorkOrdersData);
+              if (datasetMode === 'enterprise') {
+                setRawDeals(enterpriseDealsData);
+                setRawWOs(enterpriseWorkOrdersData);
+              } else {
+                setRawDeals(rawDealsData);
+                setRawWOs(rawWorkOrdersData);
+              }
             }}
           />
         )}
@@ -175,6 +206,17 @@ export default function App() {
         isOpen={isDeliverablesOpen}
         onClose={() => setIsDeliverablesOpen(false)}
         onSelectTab={setActiveTab}
+      />
+
+      <HowItWorksModal
+        isOpen={isHowItWorksOpen}
+        onClose={() => setIsHowItWorksOpen(false)}
+        onSelectPrompt={(prompt) => {
+          setInitialPrompt(prompt);
+          setActiveTab('chat');
+        }}
+        onOpenLeadershipUpdates={() => setIsLeadershipUpdatesOpen(true)}
+        onOpenDataHealth={() => setIsDataHealthOpen(true)}
       />
 
       {/* Persistent Floating AI Agent Assistant (accessible on Dashboard and Data tabs) */}

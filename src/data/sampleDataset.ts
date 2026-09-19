@@ -1,4 +1,14 @@
 import { RawDeal, RawWorkOrder } from '../types';
+import { enterpriseDealsData, enterpriseWorkOrdersData } from './assessmentDataset';
+
+export { enterpriseDealsData, enterpriseWorkOrdersData };
+
+/**
+ * Skylark Drones Enterprise Primary Dataset (Default)
+ * Sourced from real Monday.com Work Orders Tracker and Deals Pipeline Funnel
+ */
+export const defaultActiveDeals: RawDeal[] = enterpriseDealsData;
+export const defaultActiveWorkOrders: RawWorkOrder[] = enterpriseWorkOrdersData;
 
 export const rawDealsData: RawDeal[] = [
   {

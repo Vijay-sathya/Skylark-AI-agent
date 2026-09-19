@@ -4,7 +4,7 @@ import {
   HelpCircle, ArrowRight, RefreshCw, BarChart2, TrendingUp,
   Clock, ShieldAlert, FileText, ChevronRight, ChevronDown,
   Mic, MicOff, Copy, Check, Download, Sliders, Zap, 
-  Compass, PieChart as PieIcon, LineChart as LineIcon
+  Compass, PieChart as PieIcon, LineChart as LineIcon, X
 } from 'lucide-react';
 import { 
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, 
@@ -24,9 +24,13 @@ interface AgentChatProps {
   dataHealth: DataHealthReport;
   onOpenLeadershipUpdates: () => void;
   onOpenDataHealth: () => void;
+  onOpenHowItWorks?: () => void;
+  initialPrompt?: string | null;
+  onClearInitialPrompt?: () => void;
 }
 
 const FOUNDER_QUICK_PROMPTS = [
+  "How does this agent work? Give me a quick user guide",
   "How's our pipeline looking for the energy sector this quarter?",
   "Compare booked deals vs completed work orders & turnaround times",
   "Which clients have won deals but currently delayed work orders?",
@@ -43,13 +47,19 @@ export const AgentChat: React.FC<AgentChatProps> = ({
   sectorMetrics,
   dataHealth,
   onOpenLeadershipUpdates,
-  onOpenDataHealth
+  onOpenDataHealth,
+  onOpenHowItWorks,
+  initialPrompt,
+  onClearInitialPrompt
 }) => {
   // Agent Persona Mode
   const [agentMode, setAgentMode] = useState<'founder' | 'ops' | 'sales'>('founder');
 
   // Simulator Modal State
   const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
+
+  // Quick Start Banner visibility
+  const [showQuickGuide, setShowQuickGuide] = useState(true);
 
   // Voice Recognition State
   const [isListening, setIsListening] = useState(false);
@@ -177,6 +187,16 @@ export const AgentChat: React.FC<AgentChatProps> = ({
     scrollToBottom();
   }, [messages, isQuerying]);
 
+  // Handle incoming prompt from "How It Works" or external links
+  useEffect(() => {
+    if (initialPrompt && initialPrompt.trim()) {
+      handleSend(initialPrompt.trim());
+      if (onClearInitialPrompt) {
+        onClearInitialPrompt();
+      }
+    }
+  }, [initialPrompt]);
+
   const handleSend = async (queryText?: string) => {
     const textToSend = (queryText || inputText).trim();
     if (!textToSend || isQuerying) return;
@@ -271,6 +291,61 @@ export const AgentChat: React.FC<AgentChatProps> = ({
     mode: 'founder' | 'ops' | 'sales'
   ) => {
     const qLower = query.toLowerCase();
+
+    if (
+      qLower.includes('how does this work') || 
+      qLower.includes('how it works') || 
+      qLower.includes('instruction') || 
+      qLower.includes('user guide') || 
+      qLower.includes('getting started') ||
+      qLower.includes('what can you do') ||
+      qLower.includes('help')
+    ) {
+      return {
+        answer: `### Welcome to the Skylark Drones Autonomous BI Agent 🛸\n\nThis agent is purpose-built to give founders, operations leads, and sales executives **real-time clarity** by cross-referencing Monday.com boards.\n\n#### 1. What Data Is Connected?\n- **Deals Funnel Board (#7849):** 14 sales opportunities totaling **$${(k.totalPipelineValue / 1000).toFixed(0)}k** ($${(k.totalWonBookings / 1000).toFixed(0)}k won bookings).\n- **Work Orders Board (#7849):** 8 field missions tracking flight logs (**${k.totalFlightHoursLogged} hours**), ${k.pilotsDeployed} pilots deployed, and deliverables.\n- **Autonomous Cleansing:** The agent resolves currency mismatches (INR vs USD at 1:83), canonicalizes messy sector tags, and normalizes date ranges.\n\n#### 2. Key Features & How to Use Them\n- **Natural Language & Voice:** Type any business question or click the **Microphone** icon to dictate.\n- **Persona Modes:** Switch between **🎯 Founder** (growth & risks), **⚙️ VP Operations** (TAT, weather bottlenecks & pilot utilization), and **💼 Head of Sales** (conversion velocity & win rates).\n- **Audit Trail & Step Transparency:** Click *"Show Autonomous Steps"* on any agent response to verify mathematical operations, board joins, and anomaly checks.\n- **What-If Scenario Simulator:** Click *"Simulate What-If"* to model pipeline shocks, pilot shortages, and monsoon weather disruptions.\n- **Executive PDF Report:** Click *"Leadership Update"* -> *"Download Report"* to export a branded PDF summary for your board.\n\n#### 3. Top Discovered Bottlenecks\n- **NTPC Powerline ($125k):** Won deal currently delayed **9 days** due to Madhya Pradesh monsoon weather advisory.\n- **NHAI Expressway ($45k):** Awaiting DGCA 5km airport buffer airspace clearance in Vadodara.`,
+        executiveSummary: `Skylark BI Agent autonomously cross-references 14 Deals and 8 Work Orders from Monday.com, featuring 3 Persona Modes, voice dictation, What-If simulation, and instant PDF board reports.`,
+        confidenceScore: "100% (System Architecture & Guide)",
+        agentActionTaken: "System Orientation & Operational Architecture Walkthrough",
+        agentMode: mode,
+        reasoningSteps: [
+          { step: "Entity Ingestion", detail: "Connected to Deals Board (#7849) and Work Orders Board (#7849).", status: "completed" as const },
+          { step: "Data Normalization", detail: "Active currency engine converting INR (Lakhs/Crores) to USD at 1:83; unified messy sectors.", status: "completed" as const },
+          { step: "Cross-Board Correlation", detail: "Correlated won revenue against active flight missions, identifying $170k in weather/airspace fulfillment holds.", status: "completed" as const },
+          { step: "Persona Engine Ready", detail: `Currently operating in ${mode.toUpperCase()} mode with tailored metric prioritization.`, status: "completed" as const }
+        ],
+        anomaliesDetected: [
+          { title: "Delayed Fulfillment on Won Revenue", severity: "high" as const, impact: "$170k in booked revenue at risk from weather and airspace delays (NTPC & NHAI)." }
+        ],
+        actionableRecommendations: [
+          "Try asking: 'Which clients have won deals but currently delayed work orders?'",
+          "Click 'How It Works' in the top bar to inspect the interactive architectural diagram.",
+          "Use 'Simulate What-If' to test the impact of adding 3 drone pilots."
+        ],
+        keyMetrics: [
+          { label: "Pipeline Value", value: `$${(k.totalPipelineValue / 1000).toFixed(0)}k`, subtext: `${k.activePipelineDeals} active deals` },
+          { label: "Won Revenue", value: `$${(k.totalWonBookings / 1000).toFixed(0)}k`, subtext: `${k.overallWinRate}% win rate` },
+          { label: "Flight Hours", value: `${k.totalFlightHoursLogged}h`, subtext: `${k.pilotsDeployed} pilots deployed` },
+          { label: "At-Risk Rev", value: `$${(k.atRiskRevenue / 1000).toFixed(0)}k`, subtext: `${k.delayedWorkOrders} delayed orders` }
+        ],
+        suggestedFollowUps: [
+          "Which clients have won deals but currently delayed work orders?",
+          "How's our pipeline looking for the energy sector this quarter?",
+          "Compare booked deals vs completed work orders & turnaround times"
+        ],
+        chart: {
+          type: 'bar' as const,
+          title: 'Sector Performance Overview (Pipeline vs Won Bookings)',
+          xKey: 'sector',
+          dataKey: 'pipeline',
+          secondaryDataKey: 'won',
+          data: sMetrics.map(s => ({
+            sector: s.sector.replace('&', '+').slice(0, 14),
+            pipeline: s.totalPipeline,
+            won: s.wonBookings
+          }))
+        }
+      };
+    }
     
     if (qLower.includes('energy')) {
       const energyMetric = sMetrics.find(s => s.sector.toLowerCase().includes('energy')) || sMetrics[0];
@@ -448,8 +523,24 @@ export const AgentChat: React.FC<AgentChatProps> = ({
           </button>
         </div>
 
-        {/* Right Tools: Scenario Simulator & Leadership Update Button */}
+        {/* Right Tools: Scenario Simulator & Leadership Update Button & How It Works Guide */}
         <div className="flex items-center gap-2">
+          <button
+            id="btn-agent-how-it-works"
+            onClick={() => {
+              if (onOpenHowItWorks) {
+                onOpenHowItWorks();
+              } else {
+                handleSend("How does this agent work? Give me a quick user guide");
+              }
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-semibold transition-all shadow-sm"
+            title="Interactive Architecture & User Instructions"
+          >
+            <HelpCircle className="w-3.5 h-3.5 text-amber-400" />
+            <span>How It Works</span>
+          </button>
+
           <button
             onClick={() => setIsSimulatorOpen(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-amber-500/30 text-amber-400 text-xs font-semibold transition-all hover:border-amber-500 shadow-sm"
@@ -468,6 +559,58 @@ export const AgentChat: React.FC<AgentChatProps> = ({
         </div>
 
       </div>
+
+      {/* New User Interactive Quick Start Guide Banner (Dismissible) */}
+      {showQuickGuide && (
+        <div className="mb-3 p-3 rounded-xl bg-gradient-to-r from-amber-500/10 via-slate-900/90 to-blue-500/10 border border-amber-500/30 flex items-start justify-between gap-3 text-xs shadow-sm">
+          <div className="flex items-start gap-2.5">
+            <Sparkles className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-amber-300">💡 New User Quick Start:</span>
+                <span className="text-slate-300 text-[11px]">
+                  Autonomous Cross-Board Monday.com Intelligence
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] text-slate-300 pt-0.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-400 font-bold flex items-center justify-center text-[10px]">1</span>
+                  <span><strong>Ask Questions:</strong> Type or click the mic for cross-board queries.</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-400 font-bold flex items-center justify-center text-[10px]">2</span>
+                  <span><strong>Switch Personas:</strong> Toggle Founder, VP Ops, or Head of Sales.</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-400 font-bold flex items-center justify-center text-[10px]">3</span>
+                  <span><strong>Inspect Math:</strong> Open <em>"Autonomous Steps"</em> for full audit trail.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={() => {
+                if (onOpenHowItWorks) {
+                  onOpenHowItWorks();
+                } else {
+                  handleSend("How does this agent work? Give me a quick user guide");
+                }
+              }}
+              className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 font-bold text-[11px] transition-all border border-amber-500/40 whitespace-nowrap"
+            >
+              Open Full Guide
+            </button>
+            <button
+              onClick={() => setShowQuickGuide(false)}
+              className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition-colors"
+              title="Dismiss Quick Guide"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Founder Quick Queries Carousel */}
       <div className="mb-3">

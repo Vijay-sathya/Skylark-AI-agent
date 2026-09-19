@@ -15,6 +15,8 @@ interface DatasetExplorerProps {
   onUpdateDeals?: (deals: RawDeal[]) => void;
   onUpdateWorkOrders?: (wos: RawWorkOrder[]) => void;
   onResetData?: () => void;
+  datasetMode?: 'enterprise' | 'demo';
+  onSwitchDataset?: (mode: 'enterprise' | 'demo') => void;
 }
 
 export const DatasetExplorer: React.FC<DatasetExplorerProps> = ({
@@ -24,7 +26,9 @@ export const DatasetExplorer: React.FC<DatasetExplorerProps> = ({
   onOpenDataHealth,
   onUpdateDeals,
   onUpdateWorkOrders,
-  onResetData
+  onResetData,
+  datasetMode = 'enterprise',
+  onSwitchDataset
 }) => {
   const [boardTab, setBoardTab] = useState<'deals' | 'workOrders'>('deals');
   const [searchQuery, setSearchQuery] = useState('');
@@ -234,16 +238,40 @@ export const DatasetExplorer: React.FC<DatasetExplorerProps> = ({
             </div>
           </div>
 
-          {/* Quick upload / reset actions */}
-          <div className="flex items-center gap-2">
+          {/* Quick upload / reset / switch actions */}
+          <div className="flex flex-wrap items-center gap-2">
+            {onSwitchDataset && (
+              <div className="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
+                <button
+                  onClick={() => onSwitchDataset('enterprise')}
+                  className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
+                    datasetMode === 'enterprise'
+                      ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Enterprise Data (344 Deals / 176 WOs)
+                </button>
+                <button
+                  onClick={() => onSwitchDataset('demo')}
+                  className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
+                    datasetMode === 'demo'
+                      ? 'bg-blue-600 text-white font-bold shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Benchmark (18 Deals / 15 WOs)
+                </button>
+              </div>
+            )}
             {onResetData && (
               <button
                 onClick={onResetData}
                 className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors flex items-center gap-1.5"
-                title="Reset to original sample data"
+                title="Reset to active dataset default"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
-                <span>Reset to Default</span>
+                <span>Reset</span>
               </button>
             )}
             <button

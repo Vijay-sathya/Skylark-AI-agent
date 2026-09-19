@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bot, Sparkles, Database, FileText, Settings, ShieldCheck, Download, BarChart3, AlertCircle, FolderArchive } from 'lucide-react';
+import { Bot, Sparkles, Database, FileText, Settings, ShieldCheck, Download, BarChart3, AlertCircle, FolderArchive, HelpCircle } from 'lucide-react';
 import { DataHealthReport, MondayConnectionConfig } from '../types';
 
 interface HeaderProps {
@@ -12,6 +12,7 @@ interface HeaderProps {
   onOpenDataHealth: () => void;
   onOpenMondayConfig: () => void;
   onOpenDeliverables: () => void;
+  onOpenHowItWorks: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -23,7 +24,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenLeadershipUpdates,
   onOpenDataHealth,
   onOpenMondayConfig,
-  onOpenDeliverables
+  onOpenDeliverables,
+  onOpenHowItWorks
 }) => {
   return (
     <header className="sticky top-0 z-30 border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-md">
@@ -153,6 +155,17 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <FileText className="w-3.5 h-3.5 text-amber-400" />
               <span className="hidden sm:inline">Decision Log</span>
+            </button>
+
+            {/* How It Works Guide Trigger */}
+            <button
+              id="btn-header-how-it-works"
+              onClick={onOpenHowItWorks}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 hover:bg-slate-800 border border-amber-500/40 text-amber-300 hover:text-amber-200 transition-colors"
+              title="Instructions for New Users: How the Agent & Architecture Works"
+            >
+              <HelpCircle className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">How It Works</span>
             </button>
 
             {/* Assessment Deliverables Package Trigger */}
