@@ -140,8 +140,3 @@ Try asking the agent any of the following founder questions:
 
 ---
 
-## 📄 Deliverables Summary
-
-1. **Hosted Prototype:** Fully interactive web app accessible at port 3000.
-2. **Decision Log:** Available inside the app via the **Decision Log (PDF/Doc)** button in the header, and in `/DECISION_LOG.md`.
-3. **Source Code & Documentation:** Comprehensive modular React + Express codebase with TypeScript.
